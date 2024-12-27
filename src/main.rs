@@ -1,48 +1,20 @@
-use beryllium::*;
+use bevy::prelude::*;
 
+mod components;
+mod systems;
+mod resources;
+
+use components::*;
+use systems::*;
+use resources::*;
 
 fn main() {
-    let sdl = Sdl::init(init::InitFlags::EVERYTHING);
-
-    sdl.set_gl_context_major_version(3).unwrap();
-    sdl.set_gl_context_major_version(3).unwrap();
-    sdl.set_gl_profile(video::GlProfile::Core).unwrap();
-    #[cfg(target_os = "linux")]
-    {
-        sdl
-            .set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE)
-            .unwrap();
-    }
-    #[cfg(target_os = "windows")]
-    {
-        sdl
-            .set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE)
-            .unwrap();
-    }
-
-    let win_args = video::CreateWinArgs {
-        title: "GameOfLife",
-        width: 800,
-        height: 600,
-        allow_high_dpi: true,
-        borderless: false,
-        resizable: true,
-    };
-
-    let _win = sdl
-        .create_gl_window(win_args)
-        .expect("couldn't make a window and context");
-
-    'main_loop: loop {
-        // handle events this frame
-        while let Some(event) = sdl.poll_events() {
-            match event {
-                (events::Event::Quit, _) => break 'main_loop,
-                _ => (),
-            }
-        }
-        // now the events are clear
-
-        // here's where we could change the world state and draw.
-    }
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(PlayerSpeed(300.0))
+        .add_systems(Startup, setup)
+        .add_systems(Startup, spawn_player)
+        .add_systems(Update, move_player)
+        .run();
 }
