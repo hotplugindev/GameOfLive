@@ -1,5 +1,10 @@
 use bevy::prelude::*;
-use crate::{components::Player, resources::PlayerSpeed, components::MyCameraMarker};
+use rand::Rng;
+use crate::{components::Node, resources::GameSpeed, components::Camera};
+
+const GRID_SIZE: usize = 20;
+const NODE_SIZE: f32 = 20.0;
+const WINDOW_SIZE: f32 = (GRID_SIZE as f32) * NODE_SIZE;
 
 pub fn setup(mut commands: Commands){
     commands.spawn((
@@ -7,54 +12,78 @@ pub fn setup(mut commands: Commands){
             transform: Transform::from_xyz(100.0, 200.0, 0.0),
             ..default()
         },
-        MyCameraMarker,
+        Camera,
     ));
 }
 
-/// System to spawn the player
-pub fn spawn_player(mut commands: Commands) {
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::WHITE,
-                custom_size: Some(Vec2::new(50.0, 50.0)),
+pub fn spawn_objects(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+
+    let mut rng = rand::thread_rng();
+
+    // Spawn nodes randomly
+    for _ in 0..50 {
+        let position = IVec2::new(rng.gen_range(0..GRID_SIZE as i32), rng.gen_range(0..GRID_SIZE as i32));
+        commands
+            .spawn_batch(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::WHITE,
+                    custom_size: Some(Vec2::splat(NODE_SIZE)),
+                    ..Default::default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(
+                        position.x as f32 * NODE_SIZE - WINDOW_SIZE / 2.0 + NODE_SIZE / 2.0,
+                        position.y as f32 * NODE_SIZE - WINDOW_SIZE / 2.0 + NODE_SIZE / 2.0,
+                        0.0,
+                    ),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        },
-        Player,
-    ));
-    println!("Spawned a player!");
-}
-
-/// System to move the player using WASD keys
-pub fn move_player(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    player_speed: Res<PlayerSpeed>,
-    mut query: Query<&mut Transform, With<Player>>,
-) {
-    if let Ok(mut transform) = query.get_single_mut() {
-        let mut direction = Vec3::ZERO;
-
-        // WASD key handling
-        if keyboard_input.pressed(KeyCode::KeyW) {
-            direction.y += 1.0;
-            println!("Moved Up");
-        }
-        if keyboard_input.pressed(KeyCode::KeyS) {
-            direction.y -= 1.0;
-            println!("Moved down");
-        }
-        if keyboard_input.pressed(KeyCode::KeyA) {
-            direction.x -= 1.0;
-            println!("Moved left");
-        }
-        if keyboard_input.pressed(KeyCode::KeyD) {
-            direction.x += 1.0;
-            println!("Moved right");
-        }
-
-        transform.translation += direction.normalize_or_zero() * player_speed.0 * time.delta_seconds();
+            })
+            .insert(Node { position });
     }
 }
+
+
+pub fn update_positions(mut query: Query<(&mut Node, &mut Transform)>, mut materials: ResMut<Assets<ColorMaterial>>) {
+    let mut nodes = Vec::new();
+
+    // Collect all node positions
+    for (node, _) in query.iter() {
+        nodes.push(node.position);
+    }
+
+    let mut rng = rand::thread_rng();
+
+    // Update each node
+    for (mut node, mut transform) in query.iter_mut() {
+        // Randomly pick a direction (including staying in place)
+        let direction = IVec2::new(rng.gen_range(-1..=1), rng.gen_range(-1..=1));
+        let new_position = node.position + direction;
+
+        // Check bounds
+        if new_position.x >= 0
+            && new_position.x < GRID_SIZE as i32
+            && new_position.y >= 0
+            && new_position.y < GRID_SIZE as i32
+        {
+            node.position = new_position;
+        }
+
+        // Update transform to match grid position
+        transform.translation = Vec3::new(
+            node.position.x as f32 * NODE_SIZE - WINDOW_SIZE / 2.0 + NODE_SIZE / 2.0,
+            node.position.y as f32 * NODE_SIZE - WINDOW_SIZE / 2.0 + NODE_SIZE / 2.0,
+            0.0,
+        );
+
+        // Log relative positions for demonstration (optional)
+        for other_position in &nodes {
+            if *other_position != node.position {
+                let relative = *other_position - node.position;
+                println!("Node at {:?} sees relative position {:?}", node.position, relative);
+            }
+        }
+    }
+}
+
