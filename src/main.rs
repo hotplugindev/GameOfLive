@@ -1,22 +1,25 @@
-use bevy::prelude::*;
+use std::io;
+use game::*;
+use models::Cell;
+use utils::print_cell_grid;
 
-mod components;
-mod systems;
-mod resources;
+mod models;
+mod game;
+mod utils;
 
-use components::*;
-use systems::*;
-use resources::*;
-
-
+const CELLCOUNT: i64 = 9;
+const GRIDSIZE: usize = 5;
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(GameSpeed(300.0))
-        .add_systems(Startup, setup)
-        .add_systems(Startup, spawn_objects)
-        .add_systems(Update, update_positions)
-        .run();
+    
+    let mut cellarr: [[Cell; GRIDSIZE]; GRIDSIZE] = create_cell_array();
+    
+    let mut cont = String::new();
+
+    print_cell_grid(cellarr);
+    io::stdin()
+        .read_line(&mut cont)
+        .expect("Failed to read line");
+    gameloop(&mut cellarr);
+    print_cell_grid(cellarr);
 }
