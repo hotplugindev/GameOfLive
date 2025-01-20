@@ -41,7 +41,7 @@ fn apply_next_tick(cellarr: &mut [[Cell; GRIDSIZE]; GRIDSIZE]){
     }
 }
 
-pub fn gameloop(cellarr: &mut [[Cell; GRIDSIZE]; GRIDSIZE]){
+pub fn run(cellarr: &mut [[Cell; GRIDSIZE]; GRIDSIZE]){
     for i in 0..GRIDSIZE{
         for j in 0..GRIDSIZE{
             match get_cell_neighbor_count(*cellarr, i, j) {
